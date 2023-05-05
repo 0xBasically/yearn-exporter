@@ -18,14 +18,15 @@ pony>=0.7.16
 sqlalchemy>=1.4.41
 sentry-sdk>=1.9.0
 pytest-bdd>=5.0.0
-#dank_mids>=4.20.38
+#dank_mids>=4.20.42
 eth_retry>=0.1.17
 eth-hash[pysha3]
 python-telegram-bot==13.15
-ypricemagic>=2.1.6
-git+https://www.github.com/BobTheBuidler/eth-portfolio@edacc1cda3d7fdf961da71260a54a66de5c6a9e1
+#ypricemagic>=2.1.12
+git+https://www.github.com/BobTheBuidler/eth-portfolio@5a048c406cbf3c4f91079900f6c692aad07125ca
 git+https://www.github.com/BobTheBuidler/toolcache@e37b53cec64556d2b35df66767fca4c8f366a2fa
 memray
 
-git+https://www.github.com/BobTheBuidler/dank_mids@ce755f12c3a81f06d37d1382f159cc71cc1c8701
-git+https://www.github.com/banteg/multicall.py@55979e129fde3be69beb717302b860cfdd6c137a
+git+https://www.github.com/BobTheBuidler/ypricemagic@4299e3c8d5c7873f3b455a80389964f3adee6402
+git+https://www.github.com/BobTheBuidler/dank_mids@178e492b9f7d1d31db20e3e590e12ff1de15ef01
+multicall>=0.7.3
