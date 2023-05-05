@@ -22,7 +22,7 @@ dank_mids>=4.20.33
 eth_retry>=0.1.17
 eth-hash[pysha3]
 python-telegram-bot==13.15
-ypricemagic>=2.1.3
+ypricemagic>=2.1.4
 git+https://www.github.com/BobTheBuidler/eth-portfolio@b7bc2eddb8fc0f3abb13e0f17c72380ae08f7810
 git+https://www.github.com/BobTheBuidler/toolcache@e37b53cec64556d2b35df66767fca4c8f366a2fa
 memray
