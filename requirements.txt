@@ -26,5 +26,5 @@ ypricemagic>=2.2.16.dev13
 git+https://www.github.com/BobTheBuidler/eth-portfolio@549a4f306d08f2444b53dc6a0c19c0b22585fbab
 git+https://www.github.com/BobTheBuidler/toolcache@e37b53cec64556d2b35df66767fca4c8f366a2fa
 memray
-
+retry
 multicall>=0.7.3
