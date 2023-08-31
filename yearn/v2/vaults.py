@@ -3,10 +3,10 @@ import logging
 import re
 import time
 from contextlib import suppress
-from functools import cached_property
-from typing import TYPE_CHECKING, Any, Dict, List, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
-from async_property import async_property
+import a_sync
+from async_property import async_cached_property, async_property
 from brownie import chain
 from eth_utils import encode_hex, event_abi_to_log_topic
 from joblib import Parallel, delayed
@@ -16,8 +16,9 @@ from y import ERC20, Contract, Network, magic
 from y.exceptions import PriceError, yPriceMagicError
 from y.networks import Network
 from y.prices import magic
+from y.prices.stable_swap.curve import curve
 from y.utils.events import get_logs_asap_generator
-import a_sync
+
 from yearn.common import Tvl
 from yearn.events import decode_logs
 from yearn.multicall2 import fetch_multicall_async
@@ -194,14 +195,16 @@ class Vault:
         return str(self.vault) in await self.registry.experiments or re.search(r"0x.*$", self.name) is not None
 
     async def load_strategies(self):
+        if self._done.is_set():
+            return
         if not self._task:
             self._task = asyncio.create_task(self.watch_events())
         while not self._task.done():
             with suppress(asyncio.TimeoutError):
-                await asyncio.wait_for(self._done.wait(), 60)
+                await asyncio.wait_for(self._done.wait(), 5)
                 return
-        if self._task.exception():
-            raise self._task.exception()
+        if e := self._task.exception():
+            raise e
 
     def load_harvests(self):
         Parallel(1, "threading")(delayed(strategy.load_harvests)() for strategy in self.strategies)
@@ -221,9 +224,7 @@ class Vault:
         if not self._watch_events_forever:
             return
         
-        from_block = height + 1
-        height = await dank_w3.eth.block_number
-        async for logs in get_logs_asap_generator(str(self.vault), topics=self._topics, from_block=from_block, to_block=height, chronological=True, run_forever=True):
+        async for logs in get_logs_asap_generator(str(self.vault), topics=self._topics, from_block=height + 1, chronological=True, run_forever=True):
             events = decode_logs(logs)
             self.process_events(events)
 
@@ -313,10 +314,8 @@ class Vault:
         
         return Tvl(total_assets, price, tvl)
 
-    @cached_property
-    def _needs_curve_simple(self):
-        from yearn.prices.curve import curve
-
+    @async_cached_property
+    async def _needs_curve_simple(self):
         # some curve vaults which should not be calculated with curve logic
         curve_simple_excludes = {
             Network.Arbitrum: [
