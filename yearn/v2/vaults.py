@@ -17,7 +17,7 @@ from y.exceptions import PriceError, yPriceMagicError
 from y.networks import Network
 from y.prices import magic
 from y.utils.events import get_logs_asap_generator
-
+import a_sync
 from yearn.common import Tvl
 from yearn.events import decode_logs
 from yearn.multicall2 import fetch_multicall_async
@@ -134,11 +134,9 @@ class Vault:
             ]
         ]
         self._watch_events_forever = watch_events_forever
-        self._done = threading.Event()
-        self._has_exception = False
-        self._thread = threading.Thread(target=self.watch_events, daemon=True)
         
         self._task = None
+        self._done = a_sync.Event()
 
     def __repr__(self):
         strategies = "..."  # don't block if we don't have the strategies loaded
@@ -201,33 +199,19 @@ class Vault:
         while not self._task.done():
             with suppress(asyncio.TimeoutError):
                 await asyncio.wait_for(self._done.wait(), 60)
+                return
         if self._task.exception():
             raise self._task.exception()
 
     def load_harvests(self):
         Parallel(1, "threading")(delayed(strategy.load_harvests)() for strategy in self.strategies)
 
-    #@sentry_catch_all
     async def watch_events(self):
         start = time.time()
         from_block = None
         from y.utils.dank_mids import dank_w3
         height = await dank_w3.eth.block_number
         async for logs in get_logs_asap_generator(str(self.vault), topics=self._topics, from_block=from_block, to_block=height, chronological=True):
-            events = decode_logs(logs)
-            self.process_events(events)
-        if not self._done.is_set():
-            self._done.set()
-            logger.info("loaded %d strategies %s in %.3fs", len(self._strategies), self.name, time.time() - start)
-            
-        if not self._watch_events_forever:
-            return
-        
-        from_block = height + 1
-        height = await dank_w3.eth.block_number
-        #if height < from_block:
-        #    raise NodeNotSynced(f"No new blocks in the past {sleep_time/60} minutes.")
-        async for logs in get_logs_asap_generator(str(self.vault), topics=self._topics, from_block=from_block, to_block=height, chronological=True, run_forever=True):
             events = decode_logs(logs)
             self.process_events(events)
 
@@ -237,7 +221,9 @@ class Vault:
         if not self._watch_events_forever:
             return
         
-        async for logs in get_logs_asap_generator(str(self.vault), topics=self._topics, from_block=height + 1, chronological=True, run_forever=True):
+        from_block = height + 1
+        height = await dank_w3.eth.block_number
+        async for logs in get_logs_asap_generator(str(self.vault), topics=self._topics, from_block=from_block, to_block=height, chronological=True, run_forever=True):
             events = decode_logs(logs)
             self.process_events(events)
 
