@@ -165,7 +165,10 @@ class Registry(metaclass=Singleton):
             logger.debug("%s %s %s %s", event.block_number, event.address, event.name, dict(event))
             if event.name == "NewGovernance":
                 self.governance = event["governance"]
-                
+
+            if event.name == "NewRelease":
+                self.releases[event["api_version"]] = Contract(event["template"])
+
             if event.name == "NewVault":
                 vault_address = event["vault"]
                 version = event["api_version"]
