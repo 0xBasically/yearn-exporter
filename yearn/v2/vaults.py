@@ -3,10 +3,10 @@ import logging
 import re
 import time
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+from functools import cached_property
+from typing import TYPE_CHECKING, Any, Dict, List, Union
 
-import a_sync
-from async_property import async_cached_property, async_property
+from async_property import async_property
 from brownie import chain
 from eth_utils import encode_hex, event_abi_to_log_topic
 from joblib import Parallel, delayed
@@ -16,7 +16,6 @@ from y import ERC20, Contract, Network, magic
 from y.exceptions import PriceError, yPriceMagicError
 from y.networks import Network
 from y.prices import magic
-from y.prices.stable_swap.curve import curve
 from y.utils.events import get_logs_asap_generator
 
 from yearn.common import Tvl
@@ -135,9 +134,11 @@ class Vault:
             ]
         ]
         self._watch_events_forever = watch_events_forever
+        self._done = threading.Event()
+        self._has_exception = False
+        self._thread = threading.Thread(target=self.watch_events, daemon=True)
         
         self._task = None
-        self._done = a_sync.Event()
 
     def __repr__(self):
         strategies = "..."  # don't block if we don't have the strategies loaded
@@ -195,26 +196,38 @@ class Vault:
         return str(self.vault) in await self.registry.experiments or re.search(r"0x.*$", self.name) is not None
 
     async def load_strategies(self):
-        if self._done.is_set():
-            return
         if not self._task:
             self._task = asyncio.create_task(self.watch_events())
         while not self._task.done():
             with suppress(asyncio.TimeoutError):
-                await asyncio.wait_for(self._done.wait(), 5)
-                return
-        if e := self._task.exception():
-            raise e
+                await asyncio.wait_for(self._done.wait(), 60)
+        if self._task.exception():
+            raise self._task.exception()
 
     def load_harvests(self):
         Parallel(1, "threading")(delayed(strategy.load_harvests)() for strategy in self.strategies)
 
+    #@sentry_catch_all
     async def watch_events(self):
         start = time.time()
         from_block = None
         from y.utils.dank_mids import dank_w3
         height = await dank_w3.eth.block_number
         async for logs in get_logs_asap_generator(str(self.vault), topics=self._topics, from_block=from_block, to_block=height, chronological=True):
+            events = decode_logs(logs)
+            self.process_events(events)
+        if not self._done.is_set():
+            self._done.set()
+            logger.info("loaded %d strategies %s in %.3fs", len(self._strategies), self.name, time.time() - start)
+            
+        if not self._watch_events_forever:
+            return
+        
+        from_block = height + 1
+        height = await dank_w3.eth.block_number
+        #if height < from_block:
+        #    raise NodeNotSynced(f"No new blocks in the past {sleep_time/60} minutes.")
+        async for logs in get_logs_asap_generator(str(self.vault), topics=self._topics, from_block=from_block, to_block=height, chronological=True, run_forever=True):
             events = decode_logs(logs)
             self.process_events(events)
 
@@ -314,8 +327,10 @@ class Vault:
         
         return Tvl(total_assets, price, tvl)
 
-    @async_cached_property
-    async def _needs_curve_simple(self):
+    @cached_property
+    def _needs_curve_simple(self):
+        from yearn.prices.curve import curve
+
         # some curve vaults which should not be calculated with curve logic
         curve_simple_excludes = {
             Network.Arbitrum: [
@@ -326,4 +341,4 @@ class Vault:
         if chain.id in curve_simple_excludes:
             needs_simple = self.vault.address not in curve_simple_excludes[chain.id]
 
-        return needs_simple and curve and await curve.get_pool(self.token.address)
+        return needs_simple and curve and curve.get_pool(self.token.address)

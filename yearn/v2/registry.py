@@ -144,6 +144,9 @@ class Registry(metaclass=Singleton):
         if not self._watch_events_forever:
             return
         
+        while height == await dank_w3.eth.block_number:
+            await asyncio.sleep(5)
+            
         async for logs in get_logs_asap_generator([str(addr) for addr in self.registries], from_block=height + 1, chronological=True, run_forever=True):
             await self.process_events(decode_logs(logs))
             self._filter_vaults()
@@ -167,7 +170,10 @@ class Registry(metaclass=Singleton):
             logger.debug("%s %s %s %s", event.block_number, event.address, event.name, dict(event))
             if event.name == "NewGovernance":
                 self.governance = event["governance"]
-                
+
+            if event.name == "NewRelease":
+                self.releases[event["api_version"]] = Contract(event["template"])
+
             if event.name == "NewVault":
                 vault_address = event["vault"]
                 version = event["api_version"]
