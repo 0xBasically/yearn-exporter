@@ -15,7 +15,7 @@ from y.exceptions import PriceError, yPriceMagicError
 
 from yearn import constants
 from yearn.apy.common import (Apy, ApyBlocks, ApyError, ApyFees, ApyPoints,
-                              ApySamples, SECONDS_PER_YEAR, SECONDS_PER_WEEK, SharePricePoint, calculate_roi)
+                              ApySamples, SECONDS_PER_YEAR, SECONDS_PER_WEEK, SharePricePoint, calculate_roi, get_samples)
 from yearn.common import Tvl
 from yearn.prices.curve import curve
 from yearn.utils import Singleton
@@ -85,10 +85,14 @@ class StYETH(metaclass = Singleton):
             magic.get_price(str(self.token), block=block, sync=False)
         )
         supply /= 1e18
+        apy = await self.apy(None)
         return {
+            'type': 'yETH',
             'totalSupply': supply,
             'token price': price,
             'tvl': supply * price,
+            'net_apy': apy.net_apy,
+            'gross_apr': apy.gross_apr
         }
 
 
@@ -144,10 +148,16 @@ class YETHLST():
 
     async def describe(self, block=None):
         supply, price = await self._get_supply_price(block)
+        samples = get_samples()
+        apy = await self.apy(samples)
+
         return {
+            'type': 'yETH',
             'totalSupply': supply,
             'token price': price,
             'tvl': supply * price,
+            'net_apy': apy.net_apy,
+            'gross_apr': apy.gross_apr
         }
 
     async def total_value_at(self, block=None):
