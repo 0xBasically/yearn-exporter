@@ -31,6 +31,6 @@ git+https://www.github.com/BobTheBuidler/toolcache@e37b53cec64556d2b35df66767fca
 #ez-a-sync==0.10.1
 git+https://www.github.com/BobTheBuidler/ez-a-sync@0c05482020651af07ff4258511ea0a5592768c61
 
-git+https://www.github.com/BobTheBuidler/ypricemagic@e87063e86b60e377b7977056c0b7f3748870c3e7
+git+https://www.github.com/BobTheBuidler/ypricemagic@1b6d8285dbf1a295ccc858b03aa5b19417aaff4d
 git+https://www.github.com/BobTheBuidler/eth-portfolio@6fcdd6cea1511370134b552dad988ce320469812
 memray
