@@ -22,8 +22,9 @@ dank_mids>=4.20.63
 eth_retry>=0.1.18
 eth-hash[pysha3]
 ez-a-sync==0.11.1
-ypricemagic==2.14.6
+#ypricemagic==2.14.6
 python-telegram-bot==13.15
+git+https://www.github.com/BobTheBuidler/ypricemagic@efeef3ac0bc83a58598f72db96300f73ae9ccda5
 git+https://www.github.com/BobTheBuidler/toolcache@e37b53cec64556d2b35df66767fca4c8f366a2fa
 git+https://www.github.com/BobTheBuidler/eth-portfolio@2d95efc14b3301befcdcbc6187143a621e989fbd
 memray
