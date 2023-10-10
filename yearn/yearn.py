@@ -14,6 +14,7 @@ import yearn.ironbank
 import yearn.special
 import yearn.v1.registry
 import yearn.v2.registry
+import yearn.yeth
 from yearn.exceptions import UnsupportedNetwork
 from yearn.ironbank import addresses as ironbank_registries
 from yearn.outputs.victoria.output_helper import (_flatten_dict,
@@ -38,6 +39,7 @@ class Yearn:
                 "v2": yearn.v2.registry.Registry(),
                 "ib": yearn.ironbank.Registry(exclude_ib_tvl=exclude_ib_tvl),
                 "special": yearn.special.Registry(),
+                "yeth": yearn.yeth.Registry(),
             }
         elif chain.id in [Network.Gnosis, Network.Base]:
             self.registries = {
@@ -121,7 +123,7 @@ class Yearn:
         metrics_to_export = []
 
         if chain.id == Network.Mainnet:
-            simple_products = ["v1", "earn", "ib", "special"]
+            simple_products = ["v1", "earn", "ib", "special", "yeth"]
         elif chain.id in ironbank_registries:
             simple_products = ["ib"]
         else:
@@ -220,7 +222,7 @@ class Yearn:
                     if k == 'wallet balances':
                         for wallet, bals in v.items():
                             for denom, bal in bals.items():
-                                label_values = [wallet] + _get_label_values(params, [vault, denom], product in ['v2','special'])
+                                label_values = [wallet] + _get_label_values(params, [vault, denom], product in ['v2','special', 'yeth'])
                                 label_names = ["wallet"] + mapping[product]["labels"]
                                 item = _build_item(metric, label_names, label_values, bal, timestamp)
                                 metrics_to_export.append(item)

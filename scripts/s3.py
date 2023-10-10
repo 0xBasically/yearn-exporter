@@ -28,7 +28,8 @@ from yearn.apy import (Apy, ApyBlocks, ApyFees, ApyPoints, ApySamples,
                        get_samples)
 from yearn.exceptions import EmptyS3Export
 from yearn.graphite import send_metric
-from yearn.special import Backscratcher, YveCRVJar, StYETH
+from yearn.special import Backscratcher, YveCRVJar
+from yearn.yeth import Registry as RegistryYETH
 from yearn.utils import chunks, contract
 from yearn.v1.registry import Registry as RegistryV1
 from yearn.v1.vaults import VaultV1
@@ -100,8 +101,11 @@ async def wrap_vault(
         "migration": migration,
     }
 
-    if chain.id == 1 and any([isinstance(vault, t) for t in [Backscratcher, YveCRVJar]]):
-        object["special"] = True
+    if chain.id == 1:
+        if ([isinstance(vault, t) for t in [Backscratcher, YveCRVJar]]):
+            object["special"] = True
+        else if ([isinstance(vault, t) for t in [StYETH, YETHLST]]):
+            object["type"] = "yETH"
 
     return object
 
@@ -215,9 +219,10 @@ async def _main():
     registry_v2 = RegistryV2(include_experimental=(export_mode == "experimental"))
 
     if chain.id == Network.Mainnet:
-        special = [YveCRVJar(), Backscratcher(), StYETH()]
+        special = [YveCRVJar(), Backscratcher()]
         registry_v1 = RegistryV1()
-        vaults = list(itertools.chain(special, registry_v1.vaults, await registry_v2.vaults, await registry_v2.experiments))
+        registry_yeth = RegistryYETH()
+        vaults = list(itertools.chain(special, registry_v1.vaults, await registry_v2.vaults, await registry_v2.experiments, await registry_yeth.vaults))
     else:
         vaults = await registry_v2.vaults
 
