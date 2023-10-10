@@ -27,6 +27,7 @@ from yearn import logs
 from yearn.apy import (Apy, ApyBlocks, ApyFees, ApyPoints, ApySamples,
                        get_samples)
 from yearn.exceptions import EmptyS3Export
+from yearn.common import Tvl
 from yearn.graphite import send_metric
 from yearn.special import Backscratcher, YveCRVJar
 from yearn.yeth import StYETH, YETHLST, Registry as RegistryYETH
